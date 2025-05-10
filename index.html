@@ -45,7 +45,7 @@
       const interestRate = parseFloat(document.getElementById("interestRate").value);
 
       try {
-        const response = await fetch("http://localhost:3000/api/financial-goal", {
+        const response = await fetch("/api/financial-goal", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

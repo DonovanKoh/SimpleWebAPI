@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Financial Goal Planner</title>
+  <title>Financial Goals Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
-  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold text-center text-indigo-700 mb-4">Financial Goal Calculator</h1>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+    <h2 class="text-2xl font-bold text-indigo-700 mb-4">Financial Goal Planner</h2>
 
-    <form id="goalForm" class="space-y-4 mb-6">
+    <form id="goalForm" class="space-y-4">
       <div>
         <label class="block font-semibold">Goal Amount ($)</label>
         <input type="number" id="goalAmount" class="w-full border border-gray-300 p-2 rounded" required />
@@ -20,7 +20,7 @@
         <input type="number" id="years" class="w-full border border-gray-300 p-2 rounded" required />
       </div>
       <div>
-        <label class="block font-semibold">Annual Interest Rate (%)</label>
+        <label class="block font-semibold">Expected Annual Interest Rate (%)</label>
         <input type="number" id="interestRate" class="w-full border border-gray-300 p-2 rounded" required />
       </div>
       <button type="submit" class="bg-indigo-600 text-white w-full py-2 rounded hover:bg-indigo-700 transition">
@@ -28,116 +28,44 @@
       </button>
     </form>
 
-    <div id="result" class="text-center text-lg font-semibold text-green-700 mb-6"></div>
-
-    <hr class="my-6" />
-    <h3 class="text-xl font-semibold text-indigo-600 mb-2">Manage Financial Goals</h3>
-
-    <form id="goalCrudForm" class="space-y-4 mb-4">
-      <input type="hidden" id="goalId" />
-      <div>
-        <label class="block font-semibold">Goal Name</label>
-        <input type="text" id="goalName" class="w-full border border-gray-300 p-2 rounded" required />
-      </div>
-      <div>
-        <label class="block font-semibold">Target Amount ($)</label>
-        <input type="number" id="targetAmount" class="w-full border border-gray-300 p-2 rounded" required />
-      </div>
-      <div>
-        <label class="block font-semibold">Deadline</label>
-        <input type="date" id="deadline" class="w-full border border-gray-300 p-2 rounded" required />
-      </div>
-      <div>
-        <label class="block font-semibold">Current Amount ($)</label>
-        <input type="number" id="currentAmount" class="w-full border border-gray-300 p-2 rounded" required />
-      </div>
-      <button type="submit" class="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700 transition">
-        Save Goal
-      </button>
-    </form>
-
-    <ul id="goalsList" class="space-y-2"></ul>
+    <div id="result" class="mt-6 text-green-700 font-medium"></div>
+    <div id="error" class="mt-2 text-red-600 font-medium"></div>
   </div>
 
   <script>
-    const goalForm = document.getElementById("goalForm");
-    const result = document.getElementById("result");
-
-    goalForm.addEventListener("submit", function (e) {
+    document.getElementById("goalForm").addEventListener("submit", async function (e) {
       e.preventDefault();
+      const resultDiv = document.getElementById("result");
+      const errorDiv = document.getElementById("error");
+      resultDiv.textContent = '';
+      errorDiv.textContent = '';
+
       const goalAmount = parseFloat(document.getElementById("goalAmount").value);
       const years = parseFloat(document.getElementById("years").value);
-      const interestRate = parseFloat(document.getElementById("interestRate").value) / 100;
+      const interestRate = parseFloat(document.getElementById("interestRate").value);
 
-      const months = years * 12;
-      const monthlyRate = interestRate / 12;
-      const monthlySavings = goalAmount * monthlyRate / (Math.pow(1 + monthlyRate, months) - 1);
+      try {
+        const response = await fetch("/api/financial-goal", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            goalAmount,
+            years,
+            interestRate,
+          }),
+        });
 
-      result.textContent = `You need to save $${monthlySavings.toFixed(2)} per month.`;
+        if (!response.ok) throw new Error("API error");
+
+        const data = await response.json();
+        resultDiv.textContent = `You need to save $${data.monthlySavings} per month to reach your goal.`;
+      } catch (err) {
+        errorDiv.textContent = "Something went wrong. Please try again later.";
+        console.error(err);
+      }
     });
-  </script>
-
-  <script>
-    const goalCrudForm = document.getElementById("goalCrudForm");
-    const goalsList = document.getElementById("goalsList");
-
-    async function fetchGoals() {
-      const res = await fetch("/api/goals");
-      const goals = await res.json();
-
-      goalsList.innerHTML = goals.map(goal => `
-        <li class="border p-2 rounded shadow-sm bg-gray-50">
-          <div><strong>${goal.name}</strong> - $${goal.currentAmount} / $${goal.targetAmount} (by ${goal.deadline})</div>
-          <div class="mt-1">
-            <button onclick="editGoal(${goal.id})" class="text-blue-600 mr-2">Edit</button>
-            <button onclick="deleteGoal(${goal.id})" class="text-red-600">Delete</button>
-          </div>
-        </li>
-      `).join("");
-    }
-
-    async function saveGoal(e) {
-      e.preventDefault();
-      const id = document.getElementById("goalId").value;
-      const method = id ? "PUT" : "POST";
-      const url = id ? `/api/goals/${id}` : "/api/goals";
-
-      const body = {
-        name: document.getElementById("goalName").value,
-        targetAmount: parseFloat(document.getElementById("targetAmount").value),
-        deadline: document.getElementById("deadline").value,
-        currentAmount: parseFloat(document.getElementById("currentAmount").value),
-      };
-
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      goalCrudForm.reset();
-      document.getElementById("goalId").value = "";
-      fetchGoals();
-    }
-
-    async function editGoal(id) {
-      const res = await fetch(`/api/goals/${id}`);
-      const goal = await res.json();
-
-      document.getElementById("goalId").value = goal.id;
-      document.getElementById("goalName").value = goal.name;
-      document.getElementById("targetAmount").value = goal.targetAmount;
-      document.getElementById("deadline").value = goal.deadline;
-      document.getElementById("currentAmount").value = goal.currentAmount;
-    }
-
-    async function deleteGoal(id) {
-      await fetch(`/api/goals/${id}`, { method: "DELETE" });
-      fetchGoals();
-    }
-
-    goalCrudForm.addEventListener("submit", saveGoal);
-    fetchGoals();
   </script>
 </body>
 </html>

@@ -1,17 +1,13 @@
-let goals = [];
-let currentId = 1;
+
+import { getGoals, addGoal } from './_db';
 
 export default function handler(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).json(goals);
+    res.status(200).json(getGoals());
+  } else if (req.method === 'POST') {
+    const goal = addGoal(req.body);
+    res.status(201).json(goal);
+  } else {
+    res.status(405).end();
   }
-
-  if (req.method === 'POST') {
-    const newGoal = { id: currentId++, ...req.body };
-    goals.push(newGoal);
-    return res.status(201).json(newGoal);
-  }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  res.status(405).end(`Method ${req.method} Not Allowed`);
 }

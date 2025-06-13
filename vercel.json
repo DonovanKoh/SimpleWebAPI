@@ -1,6 +1,11 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" }
+    { "src": "api/goals/index.js", "use": "@vercel/node" },
+    { "src": "api/goals/[id].js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/goals", "dest": "api/goals/index.js" },
+    { "src": "/api/goals/(\\d+)", "dest": "api/goals/[id].js" }
   ]
 }

@@ -7,6 +7,6 @@
   ],
   "routes": [
     { "src": "/api/goals", "dest": "api/goals/index.js" },
-    { "src": "/api/goals/(\d+)", "dest": "api/goals/[id].js" }
+    { "src": "/api/goals/(\\d+)", "dest": "api/goals/[id].js" }
   ]
 }
